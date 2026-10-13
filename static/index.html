@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Threat Detection System</title>
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2/css/pico.min.css" />
+    <style>
+      .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+      textarea { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+      .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 999px; font-weight: 500; }
+      .badge.ok { background: #e6ffed; color: #03543f; border: 1px solid #84e1bc; }
+      .badge.fail { background: #ffe6e6; color: #9b1c1c; border: 1px solid #f5a3a3; }
+      .badge.unknown { background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; }
+      .grid { display: grid; gap: 1rem; grid-template-columns: 1fr 1fr; }
+      @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+      button[aria-busy="true"] { opacity: 0.6; cursor: not-allowed; }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <h1>🔒 Threat Detection System</h1>
+      <p>Machine Learning-powered security solution for detecting cyber threats in real-time.</p>
+      
+      <div class="grid">
+        <section>
+          <h3>API Health</h3>
+          <div id="health-status"><span class="badge unknown">checking...</span></div>
+          <button id="check-health">Check Health</button>
+        </section>
+        <section>
+          <h3>Model Info</h3>
+          <div id="model-info">Loading...</div>
+        </section>
+      </div>
+
+      <section>
+        <h3>Threat Prediction</h3>
+        <p>Enter feature values as JSON. Example format:</p>
+        <textarea id="json-input" rows="12" placeholder='{
+  "feature1": 10,
+  "feature2": 0.35,
+  "protocol": "TCP"
+}'>{
+  "feature1": 12,
+  "feature2": 0.15,
+  "protocol": "TCP"
+}</textarea>
+        <div style="margin-top: 0.5rem">
+          <button id="send-predict">Predict Threat</button>
+        </div>
+        <article style="margin-top: 1rem">
+          <header>Prediction Result</header>
+          <pre id="result" style="white-space: pre-wrap; background: #f9fafb; padding: 1rem; border-radius: 4px;">No prediction yet. Enter features and click "Predict Threat".</pre>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const API_BASE = window.location.origin;
+      let healthStatus = 'unknown';
+
+      // Check health on load
+      document.addEventListener('DOMContentLoaded', async () => {
+        await checkHealth();
+        await loadModelInfo();
+      });
+
+      async function checkHealth() {
+        const statusEl = document.getElementById('health-status');
+        try {
+          const res = await fetch(`${API_BASE}/api/health`);
+          if (res.ok) {
+            healthStatus = 'ok';
+            statusEl.innerHTML = '<span class="badge ok">✓ Online</span>';
+          } else {
+            throw new Error('Bad status');
+          }
+        } catch (e) {
+          healthStatus = 'fail';
+          statusEl.innerHTML = '<span class="badge fail">✗ Offline</span>';
+        }
+      }
+
+      async function loadModelInfo() {
+        const infoEl = document.getElementById('model-info');
+        try {
+          const res = await fetch(`${API_BASE}/api/model/info`);
+          if (res.ok) {
+            const data = await res.json();
+            infoEl.innerHTML = `<strong>Status:</strong> ${data.status}<br><strong>Path:</strong> ${data.model_path}`;
+          } else {
+            infoEl.innerHTML = '<span class="badge fail">Model not loaded</span>';
+          }
+        } catch (e) {
+          infoEl.innerHTML = '<span class="badge fail">Error loading info</span>';
+        }
+      }
+
+      document.getElementById('check-health').addEventListener('click', checkHealth);
+
+      document.getElementById('send-predict').addEventListener('click', async () => {
+        const btn = document.getElementById('send-predict');
+        const resultEl = document.getElementById('result');
+        const jsonInput = document.getElementById('json-input').value;
+
+        btn.setAttribute('aria-busy', 'true');
+        btn.disabled = true;
+        resultEl.textContent = 'Predicting...';
+
+        try {
+          const payload = JSON.parse(jsonInput);
+          const res = await fetch(`${API_BASE}/api/predict`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data?.detail || 'Prediction failed');
+          }
+          
+          const prediction = data.prediction;
+          const confidence = data.confidence !== null ? (data.confidence * 100).toFixed(2) + '%' : 'N/A';
+          const threatStatus = prediction === 'malicious' || prediction === 1 ? '⚠️ THREAT DETECTED' : '✓ Safe';
+          
+          resultEl.textContent = `${threatStatus}\n\nPrediction: ${prediction}\nConfidence: ${confidence}\n\nFull Response:\n${JSON.stringify(data, null, 2)}`;
+        } catch (e) {
+          resultEl.textContent = `Error: ${e.message || String(e)}`;
+        } finally {
+          btn.removeAttribute('aria-busy');
+          btn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
+

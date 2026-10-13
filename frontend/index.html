@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Threat Detection UI</title>
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2/css/pico.min.css" />
+    <style>
+      .container { max-width: 880px; margin: 2rem auto; }
+      textarea { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+      .badge { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 999px; }
+      .badge.ok { background: #e6ffed; color: #03543f; border: 1px solid #84e1bc; }
+      .badge.fail { background: #ffe6e6; color: #9b1c1c; border: 1px solid #f5a3a3; }
+      .grid { display: grid; gap: 1rem; grid-template-columns: 1fr 1fr; }
+      @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <h1>Threat Detection</h1>
+      <p>Check API health and send a JSON feature object to get predictions.</p>
+      <div class="grid">
+        <section>
+          <h3>API Health</h3>
+          <div id="health-status"><span class="badge fail">unknown</span></div>
+          <button id="check-health">Check Health</button>
+        </section>
+        <section>
+          <h3>Settings</h3>
+          <label>
+            API Base URL
+            <input id="api-base" type="text" value="http://localhost:8000" />
+          </label>
+        </section>
+      </div>
+
+      <section>
+        <h3>Predict</h3>
+        <p>Paste a single record as JSON. Keys must match your model features.</p>
+        <textarea id="json-input" rows="12">{
+  "feature1": 10,
+  "feature2": 0.35,
+  "protocol": "TCP"
+}</textarea>
+        <div style="margin-top: 0.5rem">
+          <button id="send-predict">Predict</button>
+        </div>
+        <article style="margin-top: 1rem">
+          <header>Result</header>
+          <pre id="result" style="white-space: pre-wrap;">No result yet.</pre>
+        </article>
+      </section>
+    </main>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+  </html>
+
+
